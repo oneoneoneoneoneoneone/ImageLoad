@@ -10,6 +10,8 @@ import SnapKit
 import Kingfisher
 
 class CollectionViewCell: UICollectionViewCell{
+    private var observation: NSKeyValueObservation!
+    
     let loadImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(systemName: "photo"))
         imageView.contentMode = .scaleAspectFit
@@ -73,23 +75,59 @@ class CollectionViewCell: UICollectionViewCell{
         
     }
     
+    func reset(){
+        DispatchQueue.main.async {
+            self.loadImageView.image = .init(systemName: "photo")
+            self.progressView.progress = 0
+        }
+    }
+    
     func loadImage(row: Int){
-        let url = URL(string: "https://images.pexels.com/photos/53421\(row)/pexels-photo-53421\(row).jpeg?auto=compress&cs=tinysrgb&w=200")
+        guard let url = URL(string:"https://images.pexels.com/photos/53420\(row)/pexels-photo-53420\(row).jpeg?auto=compress&cs=tinysrgb&w=200") else {return}
+        let urlRequest = URLRequest(url: url)
         
-        loadImageView.kf.setImage(
-            with: url,
-            placeholder: UIImage(systemName: "photo"),
-            options: [
-                .forceRefresh,
-                .transition(.fade(0.1)),
-                .forceTransition
-              ],
-            progressBlock: { receivedSize, totalSize in
-                let percentage = (Float(receivedSize) / Float(totalSize)) * 100.0
-                self.progressView.progress = percentage
-            },
-            completionHandler: nil
-        )
+        let task = URLSession.shared.dataTask(with: urlRequest, completionHandler: {[weak self] data, response, error in
+            if let error = error {
+                fatalError(error.localizedDescription)
+//                self?.reset()
+//                return
+            }
+            
+            guard let response = response as? HTTPURLResponse else {
+                print("response Error")
+                self?.reset()
+                return
+            }
+            
+            guard response.statusCode == 200 else {
+                print("response Error - \(response.statusCode)")
+                self?.reset()
+                return
+            }
+            
+            guard let data = data,
+                  let image = UIImage(data: data) else {
+                print("data Parsing Error")
+                self?.reset()
+                return
+            }
+            
+            DispatchQueue.main.async {
+                self?.loadImageView.image = image
+            }
+        })
+        
+        //전역변수로 선언해야 동작하는뎁....
+        //observe 이하 겅부해
+        observation = task.progress.observe(\.fractionCompleted,
+                                                 options: [.new],
+                                                 changeHandler: {progress, change in
+            DispatchQueue.main.async {
+                self.progressView.progress = Float(progress.fractionCompleted)
+            }
+        })
+        
+        task.resume()
     }
     
     @objc func loadButtonTap(){
