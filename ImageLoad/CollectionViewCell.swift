@@ -6,8 +6,6 @@
 //
 
 import UIKit
-import SnapKit
-import Kingfisher
 
 class CollectionViewCell: UICollectionViewCell{
     private var observation: NSKeyValueObservation!
@@ -34,16 +32,6 @@ class CollectionViewCell: UICollectionViewCell{
         return button
     }()
     
-    let stackView: UIStackView = {
-        let stackView = UIStackView()
-        stackView.axis = .horizontal
-        stackView.alignment = .center
-        stackView.distribution = .fill
-        stackView.spacing = 5
-        
-        return stackView
-    }()
-    
     override init(frame: CGRect) {
         super.init(frame: frame)
         
@@ -55,24 +43,23 @@ class CollectionViewCell: UICollectionViewCell{
     }
     
     func setLayout(){
-        addSubview(stackView)
-        
         [loadImageView, progressView, loadButton].forEach{
-            stackView.addArrangedSubview($0)
+            addSubview($0)
+            $0.translatesAutoresizingMaskIntoConstraints = false
         }
         
-        stackView.snp.makeConstraints{
-            $0.top.bottom.equalToSuperview()
-            $0.leading.trailing.equalToSuperview().inset(10)
-        }
+        loadImageView.leadingAnchor.constraint(equalTo: self.leadingAnchor).isActive = true
+        loadImageView.centerYAnchor.constraint(equalTo: self.centerYAnchor).isActive = true
+        loadImageView.widthAnchor.constraint(equalToConstant: 150).isActive = true
+        loadImageView.heightAnchor.constraint(equalToConstant: 150).isActive = true
         
-        loadImageView.snp.makeConstraints{
-            $0.width.height.equalTo(150)
-        }
-        loadButton.snp.makeConstraints{
-            $0.width.equalTo(80)
-        }
+        progressView.leadingAnchor.constraint(equalTo: loadImageView.trailingAnchor).isActive = true
+        progressView.trailingAnchor.constraint(equalTo: loadButton.leadingAnchor).isActive = true
+        progressView.centerYAnchor.constraint(equalTo: self.centerYAnchor).isActive = true
         
+        loadButton.trailingAnchor.constraint(equalTo: self.trailingAnchor).isActive = true
+        loadButton.centerYAnchor.constraint(equalTo: self.centerYAnchor).isActive = true
+        loadButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
     }
     
     func reset(){

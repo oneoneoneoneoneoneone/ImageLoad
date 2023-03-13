@@ -6,14 +6,13 @@
 //
 
 import UIKit
-import SnapKit
 
 class ViewController: UIViewController {
     final let cnt = 5
     
     lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
-        layout.itemSize = CGSize(width: view.frame.width, height: 100)
+        layout.itemSize = CGSize(width: view.frame.width - 20, height: 100)
         
         let collectionView = UICollectionView(frame: .zero, collectionViewLayout: layout)
         collectionView.register(CollectionViewCell.self, forCellWithReuseIdentifier: "CollectionViewCell")
@@ -46,17 +45,18 @@ class ViewController: UIViewController {
     func setLayout(){
         [collectionView, loadAllButton].forEach{
             view.addSubview($0)
+            //Frame-Based Layout x AutoLayout o
+            $0.translatesAutoresizingMaskIntoConstraints = false
         }
         
-        collectionView.snp.makeConstraints{
-            $0.top.leading.trailing.equalToSuperview().inset(10)
-        }
+        collectionView.topAnchor.constraint(equalTo: view.topAnchor, constant: 10).isActive = true
+        collectionView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10).isActive = true
+        collectionView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10).isActive = true
+        collectionView.heightAnchor.constraint(equalToConstant: 600).isActive = true
         
-        loadAllButton.snp.makeConstraints{
-            $0.top.equalTo(collectionView.snp.bottom)
-            $0.leading.trailing.equalTo(collectionView)
-            $0.bottom.equalToSuperview().inset(10)
-        }
+        loadAllButton.topAnchor.constraint(equalTo: collectionView.bottomAnchor, constant: 10).isActive = true
+        loadAllButton.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 10).isActive = true
+        loadAllButton.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -10).isActive = true
     }
     
     @objc func loadAllButtonTap(){
