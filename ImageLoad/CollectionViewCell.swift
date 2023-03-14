@@ -9,20 +9,22 @@ import UIKit
 
 class CollectionViewCell: UICollectionViewCell{
     private var observation: NSKeyValueObservation!
+    private var task: URLSessionDataTask!
     
-    let loadImageView: UIImageView = {
+    private let loadImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(systemName: "photo"))
         imageView.contentMode = .scaleAspectFit
 
         return imageView
     }()
     
-    let progressView = UIProgressView()
+    private let progressView = UIProgressView()
     
-    lazy var loadButton: UIButton = {
+    private lazy var loadButton: UIButton = {
         let button = UIButton()
-        button.titleLabel?.font = .systemFont(ofSize: 20)
         button.setTitle("Load", for: .normal)
+        button.setTitle("Stop", for: .selected)
+        button.titleLabel?.font = .systemFont(ofSize: 20)
         button.setTitleColor(.white, for: .normal)
         button.backgroundColor = .systemBlue
         button.layer.cornerRadius = 5
@@ -42,7 +44,7 @@ class CollectionViewCell: UICollectionViewCell{
         fatalError("init(coder:) has not been implemented")
     }
     
-    func setLayout(){
+    private func setLayout(){
         [loadImageView, progressView, loadButton].forEach{
             addSubview($0)
             $0.translatesAutoresizingMaskIntoConstraints = false
@@ -62,45 +64,56 @@ class CollectionViewCell: UICollectionViewCell{
         loadButton.widthAnchor.constraint(equalToConstant: 80).isActive = true
     }
     
-    func reset(){
+    private func reset(){
         DispatchQueue.main.async {
             self.loadImageView.image = .init(systemName: "photo")
             self.progressView.progress = 0
+//            self.loadButton.isSelected = false
+        }
+    }
+    private func fail(){
+        DispatchQueue.main.async {
+            self.loadImageView.image = .init(systemName: "xmark")
+            self.progressView.progress = 0
+            self.loadButton.isSelected = false
         }
     }
     
-    func loadImage(row: Int){
-        guard let url = URL(string:"https://images.pexels.com/photos/53420\(row)/pexels-photo-53420\(row).jpeg?auto=compress&cs=tinysrgb&w=200") else {return}
+    private func loadImage(row: Int){
+        guard let url = URL(string:"https://wallpaperaccess.com/download/cool-lion-16740\(row)") else {return}
         let urlRequest = URLRequest(url: url)
         
-        let task = URLSession.shared.dataTask(with: urlRequest, completionHandler: {[weak self] data, response, error in
+        task = URLSession.shared.dataTask(with: urlRequest, completionHandler: {[weak self] data, response, error in
             if let error = error {
-                fatalError(error.localizedDescription)
-//                self?.reset()
-//                return
+                guard error.localizedDescription == "cancelled" else {
+                    fatalError(error.localizedDescription)
+                }
+                self?.reset()
+                return
             }
             
             guard let response = response as? HTTPURLResponse else {
                 print("response Error")
-                self?.reset()
+                self?.fail()
                 return
             }
             
             guard response.statusCode == 200 else {
                 print("response Error - \(response.statusCode)")
-                self?.reset()
+                self?.fail()
                 return
             }
             
             guard let data = data,
                   let image = UIImage(data: data) else {
                 print("data Parsing Error")
-                self?.reset()
+                self?.fail()
                 return
             }
             
             DispatchQueue.main.async {
                 self?.loadImageView.image = image
+                self?.loadButton.isSelected = false
             }
         })
         
@@ -117,7 +130,21 @@ class CollectionViewCell: UICollectionViewCell{
         task.resume()
     }
     
-    @objc func loadButtonTap(){
+    @objc private func loadButtonTap(_ sender: UIButton){
+        self.reset()
+        
+        sender.isSelected.toggle()
+        
+        //stop 일때 셀렉트하면
+        guard sender.isSelected else {
+            task.cancel()
+            return
+        }
+        
         loadImage(row: self.tag)
+    }
+    
+    func loadImage() {
+        loadButton.sendActions(for: .touchUpInside)
     }
 }

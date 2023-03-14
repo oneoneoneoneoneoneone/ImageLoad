@@ -8,9 +8,9 @@
 import UIKit
 
 class ViewController: UIViewController {
-    final let cnt = 5
+    private final let cnt = 5
     
-    lazy var collectionView: UICollectionView = {
+    private lazy var collectionView: UICollectionView = {
         let layout = UICollectionViewFlowLayout()
         layout.itemSize = CGSize(width: view.frame.width - 20, height: 100)
         
@@ -23,7 +23,7 @@ class ViewController: UIViewController {
         return collectionView
     }()
     
-    lazy var loadAllButton: UIButton = {
+    private lazy var loadAllButton: UIButton = {
         let button = UIButton()
         button.titleLabel?.font = .systemFont(ofSize: 20)
         button.setTitle("Load All Images", for: .normal)
@@ -42,7 +42,7 @@ class ViewController: UIViewController {
         setLayout()
     }
 
-    func setLayout(){
+    private func setLayout(){
         [collectionView, loadAllButton].forEach{
             view.addSubview($0)
             //Frame-Based Layout x AutoLayout o
@@ -62,7 +62,7 @@ class ViewController: UIViewController {
     @objc func loadAllButtonTap(){
         collectionView.visibleCells.forEach{cell in
             guard let cell = cell as? CollectionViewCell else {return}
-            cell.loadImage(row: cell.tag)
+            cell.loadImage()
         }
     }
 
