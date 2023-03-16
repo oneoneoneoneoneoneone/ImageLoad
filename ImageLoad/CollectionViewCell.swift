@@ -9,7 +9,7 @@ import UIKit
 
 class CollectionViewCell: UICollectionViewCell{
     private var observation: NSKeyValueObservation!
-    private var task: URLSessionDataTask!
+    private var imageLoadTask: Task<Void, Error>!
     
     private let loadImageView: UIImageView = {
         let imageView = UIImageView(image: UIImage(systemName: "photo"))
@@ -65,69 +65,41 @@ class CollectionViewCell: UICollectionViewCell{
     }
     
     private func reset(){
-        DispatchQueue.main.async {
-            self.loadImageView.image = .init(systemName: "photo")
-            self.progressView.progress = 0
-//            self.loadButton.isSelected = false
-        }
+        self.loadImageView.image = .init(systemName: "photo")
     }
-    private func fail(){
-        DispatchQueue.main.async {
-            self.loadImageView.image = .init(systemName: "xmark")
-            self.progressView.progress = 0
-            self.loadButton.isSelected = false
-        }
+    
+    private func fetchImage(url: URL) async throws -> UIImage{
+        let urlRequest = URLRequest(url: url)
+        
+        //취소확인 - 시작 전
+        if imageLoadTask.isCancelled { return UIImage() }
+        //dataTask에 있는 error 리턴 값이 없음.
+        let (data, response) = try await URLSession.shared.data(for: urlRequest)
+        guard let statuseCode = (response as? HTTPURLResponse)?.statusCode,
+              (200...299).contains(statuseCode) else {throw NSError(domain: "response", code: 0)}
+        //취소확인 - 주데이터 처리 전
+        if imageLoadTask.isCancelled { return UIImage() }
+        guard let image = UIImage(data: data) else {throw NSError(domain: "iamge coverting", code: 0)}
+        
+        return image
     }
     
     private func loadImage(row: Int){
-        guard let url = URL(string:"https://wallpaperaccess.com/download/cool-lion-16740\(row)") else {return}
-        let urlRequest = URLRequest(url: url)
-        
-        task = URLSession.shared.dataTask(with: urlRequest, completionHandler: {[weak self] data, response, error in
-            if let error = error {
-                guard error.localizedDescription == "cancelled" else {
-                    fatalError(error.localizedDescription)
+        guard let url = URL(string:"https://wallpaperaccess.com/download/cool-lion-167401\(row)") else {return}
+
+        imageLoadTask = Task(priority: .userInitiated){
+            do{
+                let image = try await fetchImage(url: url)
+                loadImageView.image = image
+                loadButton.isSelected.toggle()
+            }catch{
+                guard error.localizedDescription == "cancelled" else{
+                    loadImageView.image = UIImage(systemName: "xmark")
+                    loadButton.isSelected.toggle()
+                    return
                 }
-                self?.reset()
-                return
             }
-            
-            guard let response = response as? HTTPURLResponse else {
-                print("response Error")
-                self?.fail()
-                return
-            }
-            
-            guard response.statusCode == 200 else {
-                print("response Error - \(response.statusCode)")
-                self?.fail()
-                return
-            }
-            
-            guard let data = data,
-                  let image = UIImage(data: data) else {
-                print("data Parsing Error")
-                self?.fail()
-                return
-            }
-            
-            DispatchQueue.main.async {
-                self?.loadImageView.image = image
-                self?.loadButton.isSelected = false
-            }
-        })
-        
-        //전역변수로 선언해야 동작하는뎁....
-        //observe 이하 겅부해
-        observation = task.progress.observe(\.fractionCompleted,
-                                                 options: [.new],
-                                                 changeHandler: {progress, change in
-            DispatchQueue.main.async {
-                self.progressView.progress = Float(progress.fractionCompleted)
-            }
-        })
-        
-        task.resume()
+        }
     }
     
     @objc private func loadButtonTap(_ sender: UIButton){
@@ -137,7 +109,7 @@ class CollectionViewCell: UICollectionViewCell{
         
         //stop 일때 셀렉트하면
         guard sender.isSelected else {
-            task.cancel()
+            imageLoadTask.cancel()
             return
         }
         
